@@ -3,20 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:ai_exp_track/screens/loginscreen.dart';
 import 'package:ai_exp_track/screens/homescreen.dart';
 import 'package:ai_exp_track/screens/registerscreen.dart';
-// import 'package:ai_exp_track/screens/chatscreen.dart';
-// import 'package:ai_exp_track/screens/expensescreen.dart';
-// import 'package:ai_exp_track/screens/addexpensescreen.dart';
-// import 'package:ai_exp_track/screens/scanscreen.dart';
+import 'package:ai_exp_track/screens/expensescreen.dart';
+import 'package:ai_exp_track/screens/addexpensescreen.dart';
+import 'package:ai_exp_track/screens/chatbotscreen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); 
+  WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
-
   runApp(const MainApp());
 }
-
-
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -45,8 +40,11 @@ class MainApp extends StatelessWidget {
       initialRoute: '/login',
       routes: {
         '/login': (context) => LoginScreen(),
-        '/home' : (context) => HomeScreen(),
+        '/home': (context) => const HomeScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/expenses': (context) => const ExpenseScreen(),
+        '/add-expense': (context) => const AddExpenseScreen(),
+        '/chat': (context) => const ChatBotScreen(),
       },
     );
   }
