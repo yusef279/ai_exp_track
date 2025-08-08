@@ -1,13 +1,21 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import '../data/expense_repository.dart';
+import 'addexpensescreen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email ?? 'User';
+    final total = ExpenseRepository.instance.total;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6F6),
@@ -24,7 +32,9 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(context, '/login');
+              if (context.mounted) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
             },
           )
         ],
@@ -34,6 +44,31 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome, $email',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Total Spending: \$${total.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             _buildActionCard(
               context,
@@ -52,8 +87,13 @@ class HomeScreen extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/add-expense');
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AddExpenseScreen()),
+                  );
+                  setState(() {});
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add Expense'),
@@ -76,7 +116,10 @@ class HomeScreen extends StatelessWidget {
   Widget _buildActionCard(BuildContext context,
       {required IconData icon, required String label, required String route}) {
     return InkWell(
-      onTap: () => Navigator.pushNamed(context, route),
+      onTap: () async {
+        await Navigator.pushNamed(context, route);
+        setState(() {});
+      },
       borderRadius: BorderRadius.circular(20),
       child: Ink(
         decoration: BoxDecoration(
@@ -96,8 +139,8 @@ class HomeScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F1FF),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF2F1FF),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: const Color(0xFF7B61FF), size: 28),
