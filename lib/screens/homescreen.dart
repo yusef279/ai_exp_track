@@ -1,7 +1,8 @@
+import 'package:ai_exp_track/screens/addexpensescreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../data/expense_repository.dart';
-
+import 'addexpensescreen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -87,7 +88,11 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await Navigator.pushNamed(context, '/add-expense');
+                 await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const AddExpenseScreen()),
+                  );
                   setState(() {});
                 },
                 icon: const Icon(Icons.add),

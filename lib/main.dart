@@ -43,7 +43,7 @@ class MainApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/register': (context) => const RegisterScreen(),
         '/expenses': (context) => const ExpenseScreen(),
-        '/add-expense': (context) => const AddExpenseScreen(),
+        '/add': (context) => const AddExpenseScreen(),
         '/chat': (context) => const ChatBotScreen(),
       },
     );
