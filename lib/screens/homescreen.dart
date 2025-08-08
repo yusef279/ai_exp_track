@@ -2,7 +2,6 @@ import 'package:ai_exp_track/screens/addexpensescreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../data/expense_repository.dart';
-import 'addexpensescreen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
