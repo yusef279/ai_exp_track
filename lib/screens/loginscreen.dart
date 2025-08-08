@@ -16,28 +16,46 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  setState(() {
+    _isLoading = true;
+    _errorMessage = null;
+  });
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      // Navigate to home or chat screen
-      Navigator.pushReplacementNamed(context, '/home');
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+    Navigator.pushReplacementNamed(context, '/home');
+  } on FirebaseAuthException catch (e) {
+    String message;
+    switch (e.code) {
+      case 'invalid-email':
+        message = 'The email address is badly formatted.';
+        break;
+      case 'user-not-found':
+        message = 'No user found with this email.';
+        break;
+      case 'wrong-password':
+        message = 'Incorrect password.';
+        break;
+      case 'user-disabled':
+        message = 'This user account has been disabled.';
+        break;
+      default:
+        message = e.message ?? 'An unexpected error occurred.';
     }
+
+    setState(() {
+      _errorMessage = message;
+    });
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {

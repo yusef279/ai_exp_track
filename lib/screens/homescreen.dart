@@ -29,20 +29,12 @@ class HomeScreen extends StatelessWidget {
           )
         ],
       ),
-<<<<<<< HEAD
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 24),
-            _buildActionCard(
-              context,
-              icon: Icons.receipt_long_rounded,
-              label: 'Scan Receipt',
-              route: '/scan',
-            ),
-            const SizedBox(height: 16),
             _buildActionCard(
               context,
               icon: Icons.chat_rounded,
@@ -121,34 +113,6 @@ class HomeScreen extends StatelessWidget {
             const Spacer(),
             const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
           ],
-=======
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Card(
-            elevation: 6,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            margin: const EdgeInsets.all(24),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'Welcome ${user?.email ?? 'Guest'} 👋',
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-          ),
->>>>>>> 29e214eceb6b8f45cec4d1248cab6a88a3221f0e
         ),
       ),
     );
