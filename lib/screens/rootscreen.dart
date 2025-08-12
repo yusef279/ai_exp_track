@@ -1,12 +1,17 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../data/expense_repository.dart';
+
 import 'addexpensescreen.dart';
 import 'chatbotscreen.dart';
 import 'expensescreen.dart';
 import 'profilescreen.dart';
-import 'dart:ui'; // for ImageFilter.blur
+
 import '../data/expense_service.dart';
+import '../data/user_settings_service.dart';
+import '../models/user_settings.dart';
+import '../utils/currency_format.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
@@ -43,7 +48,7 @@ class _RootScreenState extends State<RootScreen> {
               filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 222, 205, 254).withOpacity(0.65), // translucency
+                  color: const Color.fromARGB(255, 222, 205, 254).withOpacity(0.65),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.06),
@@ -54,7 +59,7 @@ class _RootScreenState extends State<RootScreen> {
                 ),
                 child: NavigationBar(
                   height: 65,
-                  backgroundColor: Colors.transparent, // let the blur show
+                  backgroundColor: Colors.transparent,
                   selectedIndex: _index,
                   onDestinationSelected: _onTap,
                   labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -103,7 +108,9 @@ class _DashboardTabState extends State<_DashboardTab> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email ?? 'User';
-    final total = ExpenseRepository.instance.total;
+
+    // We'll display THIS month's stats
+    final DateTime monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
     return SafeArea(
       child: Padding(
@@ -130,33 +137,91 @@ class _DashboardTabState extends State<_DashboardTab> {
               ],
             ),
             const SizedBox(height: 12),
-           StreamBuilder<double>(
-  stream: ExpensesService.instance.streamTotal(),
-  builder: (context, snap) {
-    final total = snap.data ?? 0.0;
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Welcome, $email',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // ✅ This month total + mini category pie, formatted by user currency
+            StreamBuilder<UserSettings>(
+              stream: UserSettingsService.instance.stream(),
+              builder: (context, settingsSnap) {
+                final s = settingsSnap.data ??
+                    UserSettings(
+                      displayName: '',
+                      currency: 'EGP',
+                      monthlyIncome: 0,
+                      monthlyBudget: 0,
+                    );
+                final fmt = CurrencyFmt(s.currency);
+
+                return Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header row: Welcome + this month total
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Welcome, $email',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            StreamBuilder<double>(
+                              stream: ExpensesService.instance.streamMonthTotal(monthStart),
+                              builder: (context, totalSnap) {
+                                final total = totalSnap.data ?? 0.0;
+                                return Text(
+                                  fmt.money(total),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text('This month', style: TextStyle(color: Colors.grey.shade600)),
+                        const SizedBox(height: 12),
+
+                        // Mini category pie
+                        SizedBox(
+                          height: 140,
+                          child: StreamBuilder<Map<String, double>>(
+                            stream: ExpensesService.instance.streamCategoryTotals(monthStart),
+                            builder: (context, snap) {
+                              final data = snap.data ?? {};
+                              if (data.isEmpty) {
+                                return const Center(child: Text('No spending yet'));
+                              }
+                              final total = data.values.fold<double>(0, (a, b) => a + b);
+                              final sections = <PieChartSectionData>[];
+                              data.forEach((k, v) {
+                                final pct = total == 0 ? 0 : (v / total * 100);
+                                sections.add(
+                                  PieChartSectionData(
+                                    value: v,
+                                    radius: 42,
+                                    title: pct >= 12 ? '$k\n${pct.toStringAsFixed(0)}%' : '',
+                                    titleStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                  ),
+                                );
+                              });
+                              return PieChart(
+                                PieChartData(
+                                  sections: sections,
+                                  sectionsSpace: 2,
+                                  centerSpaceRadius: 24,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Total Spending: \$${total.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ],
-        ),
-      ),
-    );
-  },
-),
 
             const Spacer(),
             SizedBox(
@@ -169,7 +234,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                       builder: (context) => const AddExpenseScreen(),
                     ),
                   );
-                  setState(() {}); // Refresh after adding expense
+                  // No manual refresh needed; streams update UI automatically
                 },
                 icon: const Icon(Icons.add),
                 label: const Text('Add Expense'),

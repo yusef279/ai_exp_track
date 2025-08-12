@@ -33,4 +33,15 @@ class UserSettingsService {
       await _auth.currentUser!.updateDisplayName(settings.displayName);
     }
   }
+
+// inside UserSettingsService
+String? latestCurrency;
+Stream<UserSettings> streamWithCurrencyUpdate() {
+  return _doc().snapshots().map((s) {
+    final u = UserSettings.fromMap(s.data());
+    latestCurrency = u.currency;
+    return u;
+  });
+}
+
 }

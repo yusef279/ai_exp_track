@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/expense.dart';
+import 'package:intl/intl.dart';
 
 class ExpensesService {
   ExpensesService._();
@@ -67,4 +68,58 @@ class ExpensesService {
       return sum;
     });
   }
+
+// Month range
+DateTime _firstDayOfMonth(DateTime d) => DateTime(d.year, d.month, 1);
+DateTime _firstDayOfNextMonth(DateTime d) =>
+    (d.month == 12) ? DateTime(d.year + 1, 1, 1) : DateTime(d.year, d.month + 1, 1);
+
+// Stream expenses for a month
+Stream<List<Expense>> streamForMonth(DateTime month, {bool newestFirst = true}) {
+  final start = _firstDayOfMonth(month);
+  final end = _firstDayOfNextMonth(month);
+  return _col
+      .where('userId', isEqualTo: _uid)
+      .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+      .where('date', isLessThan: Timestamp.fromDate(end))
+      .orderBy('date', descending: newestFirst)
+      .snapshots()
+      .map((s) => s.docs
+          .where((d) => d.data()['date'] != null)
+          .map((d) => Expense.fromMap(d.id, d.data()))
+          .toList());
+}
+
+// Total for a month
+Stream<double> streamMonthTotal(DateTime month) {
+  return streamForMonth(month).map((list) =>
+      list.fold<double>(0, (sum, e) => sum + e.amount));
+}
+
+// Category totals for a month
+Stream<Map<String, double>> streamCategoryTotals(DateTime month) {
+  return streamForMonth(month).map((list) {
+    final map = <String, double>{};
+    for (final e in list) {
+      map[e.category] = (map[e.category] ?? 0) + e.amount;
+    }
+    return map;
+  });
+}
+
+// Update helper (for quick edit)
+Future<void> updateExpense(String id, {
+  String? title,
+  String? category,
+  double? amount,
+  DateTime? date,
+}) {
+  final patch = <String, dynamic>{};
+  if (title != null) patch['title'] = title;
+  if (category != null) patch['category'] = category;
+  if (amount != null) patch['amount'] = amount;
+  if (date != null) patch['date'] = Timestamp.fromDate(date);
+  return _col.doc(id).update(patch);
+}
+
 }
