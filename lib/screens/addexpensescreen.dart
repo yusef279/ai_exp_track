@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/expense_repository.dart';
-import '../models/expense.dart';
+import '../data/expense_service.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -12,24 +11,43 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _categoryController = TextEditingController();
   final _amountController = TextEditingController();
   final _dateController = TextEditingController();
+
+  // ↓ Category now uses a dropdown
+  final List<String> _categories = const [
+    'Food',
+    'Transport',
+    'Groceries',
+    'Bills',
+    'Housing',
+    'Shopping',
+    'Health',
+    'Entertainment',
+    'Education',
+    'Travel',
+    'Debt',
+    'Subscriptions',
+    'Other',
+  ];
+  String? _selectedCategory;
+  final _customCategoryCtrl = TextEditingController();
+
   DateTime _selectedDate = DateTime.now();
+  bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    _dateController.text =
-        _selectedDate.toLocal().toString().split('.')[0];
+    _dateController.text = _selectedDate.toLocal().toString().split('.')[0];
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _categoryController.dispose();
     _amountController.dispose();
     _dateController.dispose();
+    _customCategoryCtrl.dispose();
     super.dispose();
   }
 
@@ -41,93 +59,140 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       lastDate: DateTime(2100),
     );
     if (date == null) return;
+
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDate),
     );
+
     setState(() {
       _selectedDate = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time?.hour ?? 0,
-        time?.minute ?? 0,
+        date.year, date.month, date.day, time?.hour ?? 0, time?.minute ?? 0,
       );
-      _dateController.text =
-          _selectedDate.toLocal().toString().split('.')[0];
+      _dateController.text = _selectedDate.toLocal().toString().split('.')[0];
     });
   }
 
-  void _saveExpense() {
-    if (_formKey.currentState!.validate()) {
-      final expense = Expense(
+  Future<void> _saveExpense() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // Resolve category (handles "Other")
+    String? category = _selectedCategory;
+    if (category == 'Other') {
+      final custom = _customCategoryCtrl.text.trim();
+      if (custom.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a custom category')),
+        );
+        return;
+      }
+      category = custom;
+    }
+
+    final amount = double.tryParse(_amountController.text.trim());
+    if (amount == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid amount')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      await ExpensesService.instance.add(
         title: _titleController.text.trim(),
-        category: _categoryController.text.trim(),
-        amount: double.parse(_amountController.text.trim()),
+        amount: amount,
+        category: category!, // safe after validation above
         date: _selectedDate,
       );
-      ExpenseRepository.instance.addExpense(expense);
+      if (!mounted) return;
       Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final showCustom = _selectedCategory == 'Other';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Expense'),
-      ),
+      appBar: AppBar(title: const Text('Add Expense')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: Column(
+          child: ListView(
             children: [
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Title'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter a title' : null,
+                validator: (v) => v == null || v.trim().isEmpty ? 'Enter a title' : null,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _categoryController,
-                decoration: const InputDecoration(labelText: 'Category'),
-                validator: (value) =>
-                    value == null || value.isEmpty ? 'Enter a category' : null,
+
+              // ✅ Category dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                items: _categories
+                    .map((c) => DropdownMenuItem<String>(
+                          value: c,
+                          child: Text(c),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCategory = v),
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                validator: (v) => (v == null || v.isEmpty)
+                    ? 'Choose a category'
+                    : null,
               ),
+              if (showCustom) ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customCategoryCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Custom category',
+                    prefixIcon: Icon(Icons.edit_outlined),
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
               TextFormField(
                 controller: _dateController,
                 readOnly: true,
-                decoration:
-                    const InputDecoration(labelText: 'Date & Time'),
+                decoration: const InputDecoration(labelText: 'Date & Time'),
                 onTap: _pickDateTime,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _amountController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: const InputDecoration(labelText: 'Amount'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Enter an amount';
-                  }
-                  final amount = double.tryParse(value);
-                  if (amount == null) {
-                    return 'Enter a valid number';
-                  }
-                  return null;
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Enter an amount';
+                  return double.tryParse(v.trim()) == null ? 'Enter a valid number' : null;
                 },
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _saveExpense,
-                  child: const Text('Save Expense'),
+                  onPressed: _saving ? null : _saveExpense,
+                  child: _saving
+                      ? const SizedBox(
+                          height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Save Expense'),
                 ),
-              )
+              ),
             ],
           ),
         ),

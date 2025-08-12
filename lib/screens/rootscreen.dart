@@ -3,7 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../data/expense_repository.dart';
 import 'addexpensescreen.dart';
 import 'chatbotscreen.dart';
-import 'expensescreen.dart'; // make sure file/class names match
+import 'expensescreen.dart';
+import 'profilescreen.dart';
+import 'dart:ui'; // for ImageFilter.blur
+import '../data/expense_service.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
@@ -15,9 +18,7 @@ class RootScreen extends StatefulWidget {
 class _RootScreenState extends State<RootScreen> {
   int _index = 0;
 
-  void _onTap(int i) {
-    setState(() => _index = i);
-  }
+  void _onTap(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
@@ -25,31 +26,66 @@ class _RootScreenState extends State<RootScreen> {
       const _DashboardTab(),
       const ChatScreen(),
       const ExpenseScreen(),
+      const ProfileTab(),
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _index,
-        children: pages,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _index,
-        onTap: _onTap,
-        selectedItemColor: const Color(0xFF7B61FF),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Home',
+      body: IndexedStack(index: _index, children: pages),
+
+      // ✅ Frosted-glass, rounded, floating NavigationBar
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 222, 205, 254).withOpacity(0.65), // translucency
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: NavigationBar(
+                  height: 65,
+                  backgroundColor: Colors.transparent, // let the blur show
+                  selectedIndex: _index,
+                  onDestinationSelected: _onTap,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  indicatorColor: const Color(0xFF7B61FF).withOpacity(0.18),
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.dashboard_outlined),
+                      selectedIcon: Icon(Icons.dashboard_rounded, color: Color(0xFF7B61FF)),
+                      label: 'Home',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.chat_outlined),
+                      selectedIcon: Icon(Icons.chat_rounded, color: Color(0xFF7B61FF)),
+                      label: 'Chat',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.list_alt_outlined),
+                      selectedIcon: Icon(Icons.list_alt_rounded, color: Color(0xFF7B61FF)),
+                      label: 'Expenses',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.person_outline),
+                      selectedIcon: Icon(Icons.person_rounded, color: Color(0xFF7B61FF)),
+                      label: 'Profile',
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_rounded),
-            label: 'Chat',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_rounded),
-            label: 'Expenses',
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -94,31 +130,34 @@ class _DashboardTabState extends State<_DashboardTab> {
               ],
             ),
             const SizedBox(height: 12),
-            Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome, $email',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Total Spending: \$${total.toStringAsFixed(2)}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                  ],
-                ),
-              ),
+           StreamBuilder<double>(
+  stream: ExpensesService.instance.streamTotal(),
+  builder: (context, snap) {
+    final total = snap.data ?? 0.0;
+
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome, $email',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Total Spending: \$${total.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+      ),
+    );
+  },
+),
+
             const Spacer(),
             SizedBox(
               width: double.infinity,
