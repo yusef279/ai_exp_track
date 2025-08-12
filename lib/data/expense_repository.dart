@@ -15,4 +15,6 @@ class ExpenseRepository {
   void addExpense(Expense expense) {
     _expenses.add(expense);
   }
+
+  void clear() => _expenses.clear();
 }
