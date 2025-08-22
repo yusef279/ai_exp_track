@@ -310,7 +310,9 @@ class _ProfileTabState extends State<ProfileTab> {
                         ),
                         validator: (v) {
                           if (v == null ||
-                              v.trim().isEmpty) return null;
+                              v.trim().isEmpty) {
+                            return null;
+                          }
                           return double.tryParse(v) == null
                               ? 'Enter a number'
                               : null;
@@ -327,7 +329,9 @@ class _ProfileTabState extends State<ProfileTab> {
                         ),
                         validator: (v) {
                           if (v == null ||
-                              v.trim().isEmpty) return null;
+                              v.trim().isEmpty) {
+                            return null;
+                          }
                           return double.tryParse(v) == null
                               ? 'Enter a number'
                               : null;

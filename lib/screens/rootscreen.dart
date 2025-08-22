@@ -13,6 +13,48 @@ import '../models/user_settings.dart';
 import '../utils/currency_format.dart';
 import 'package:fl_chart/fl_chart.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+
+class WelcomeNameText extends StatelessWidget {
+  const WelcomeNameText({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .snapshots(), // <-- realtime
+      builder: (context, snap) {
+        // Fallbacks while loading / if no name yet
+        final fallback = FirebaseAuth.instance.currentUser?.email ?? 'User';
+
+        if (snap.connectionState == ConnectionState.waiting) {
+          return Text(
+            'Welcome...',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          );
+        }
+
+        final data = snap.data?.data();
+        final name = (data?['displayName'] as String?)?.trim();
+        final display = (name != null && name.isNotEmpty) ? name : fallback;
+
+        return Text(
+          'Welcome, $display',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
+        );
+      },
+    );
+  }
+}
+
+
 class RootScreen extends StatefulWidget {
   const RootScreen({super.key});
 
@@ -161,12 +203,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         // Header row: Welcome + this month total
                         Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                'Welcome, $email',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                            ),
+                            Expanded(child: WelcomeNameText()),
                             StreamBuilder<double>(
                               stream: ExpensesService.instance.streamMonthTotal(monthStart),
                               builder: (context, totalSnap) {

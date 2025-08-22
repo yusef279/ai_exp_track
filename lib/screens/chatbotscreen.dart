@@ -147,8 +147,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             if (!isUser)
                               CircleAvatar(
                                 backgroundColor: Colors.indigo[100],
-                                child: const Icon(Icons.savings, color: Colors.indigo),
                                 radius: 18,
+                                child: const Icon(Icons.savings, color: Colors.indigo),
                               ),
                             if (!isUser) const SizedBox(width: 8),
                             Flexible(
@@ -186,8 +186,8 @@ class _ChatScreenState extends State<ChatScreen> {
                             if (isUser)
                               CircleAvatar(
                                 backgroundColor: Colors.grey[300],
-                                child: const Icon(Icons.person, color: Colors.black54),
                                 radius: 18,
+                                child: const Icon(Icons.person, color: Colors.black54),
                               ),
                           ],
                         ),

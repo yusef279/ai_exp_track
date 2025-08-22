@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../data/expense_service.dart';
 import '../models/expense.dart';
@@ -124,7 +123,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         sections.add(
                           PieChartSectionData(
                             value: v,
-                            title: pct >= 8 ? '${k}\n${pct.toStringAsFixed(0)}%' : '',
+                            title: pct >= 8 ? '$k\n${pct.toStringAsFixed(0)}%' : '',
                             radius: 60,
                             titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                           ),
